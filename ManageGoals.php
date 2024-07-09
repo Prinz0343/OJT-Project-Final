@@ -329,144 +329,92 @@
             <th class="medium-style">Actions</th>
         </tr>
         <?php
-$sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL";
-$result = $conn->query($sql);
+ $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL";
+ $result = $conn->query($sql);
 
-if ($result->num_rows > 0) {
-    $rowClass = "row-1";
-    while ($row = $result->fetch_assoc()) {
-        echo "<tr class=\"$rowClass\">";
-        echo "<td>{$row['title']}</td>";
-        echo "<td>{$row['initiative']}</td>";
-        echo "<td>{$row['targets']}</td>";
-        echo "<td>{$row['total_budget']}</td>";
-        echo '<td>
-                <button class="view-button" data-goal-id="' . $row['id'] . '">View</button>
-                <button class="edit-button">Edit</button>
-                <form method="post" action="../php/archive_goal.php" style="display:inline;" onsubmit="return confirmArchive(\'' . $row['title'] . '\');">
-                    <input type="hidden" name="goal_id" value="' . $row['id'] . '">
-                    <input type="hidden" name="goal_title" value="' . $row['title'] . '">
-                    <button type="submit" class="archive-button">Archive</button>
-                </form>
-              </td>';
-        echo '</tr>';
-        // Alternate row class for styling
-        $rowClass = ($rowClass == "row-1") ? "row-2" : "row-1";
-    }
-} else {
-    echo "<tr><td colspan='5'>No goals found.</td></tr>";
-}
-
-$conn->close();
-?>
-
-        <!-- Add dynamic rows here as new goals are created -->
-    </table>
-
-<!-- The Modal -->
-<div id="createGoalModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>CREATE GOAL</h2>
-        <form action="../php/creategoal.php" method="post">
-            <input type="text" id="title" name="title" class="form-input" placeholder="Title" required>
-            <input type="number" id="year" name="year" class="form-input" placeholder="Year" value="<?php echo date('Y'); ?>" readonly required>
-            <input type="text" id="department" name="department" class="form-input" placeholder="Department" value="<?php echo htmlspecialchars($department); ?>" readonly required>
-            <input type="text" id="targets" name="targets" class="form-input" placeholder="Targets" required>
-            <input type="number" id="totalBudget" name="totalBudget" class="form-input" placeholder="Total Budget" required>
-            <select id="initiative" name="initiative" class="form-select" required>
-                <option value="" disabled selected>Initiative</option>
-                <option value="KPI 1.1">KPI 1.1</option>
-                <option value="KPI 1.2">KPI 1.2</option>
-                <option value="KPI 1.3">KPI 1.3</option>
-                <option value="KPI 1.4">KPI 1.4</option>
-            </select>
-            <div class="kpi-text" id="kpiDetails">Key performance indicator details</div>
-            <div class="save-button-container">
-                <button type="submit" class="create-button">Save Goal</button>
-            </div>
-        </form>
-    </div>
-</div>
-    
-    <script>
-        // Get the modal
-        var modal = document.getElementById("createGoalModal");
-
-        var btn = document.getElementById("createGoalBtn");
-
-        var span = document.getElementsByClassName("close")[0];
-
-        btn.onclick = function() {
-            modal.style.display = "block";
-        }
-
-        // When the user clicks on <span> (x), close the modal
-        span.onclick = function() {
-            modal.style.display = "none";
-        }
-
-        
-
-        // When the user clicks anywhere outside of the modal, close it
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
-
-        // Update KPI details based on initiative selection
-        document.getElementById("initiative").onchange = function() {
-            var selectedValue = this.value;
-            var kpiDetails = document.getElementById("kpiDetails");
-            kpiDetails.textContent = "Details for " + selectedValue;
-        }
-
-          // Confirmation dialog for archiving action
-          function confirmArchive(goalName) {
-            var confirmation = confirm("Are you sure you want to archive this goal: " + goalName + "?");
-            return confirmation;
-    } 
-    </script>
+ if ($result->num_rows > 0) {
+     $rowClass = "row-1";
+     while ($row = $result->fetch_assoc()) {
+         echo "<tr class=\"$rowClass\">";
+         echo "<td>{$row['title']}</td>";
+         echo "<td>{$row['initiative']}</td>";
+         echo "<td>{$row['targets']}</td>";
+         echo "<td>{$row['total_budget']}</td>";
+         echo '<td>
+                 <button class="view-button" data-goal-id="' . $row['id'] . '">View</button>
+                 <button class="edit-button">Edit</button>
+                 <form method="post" action="../php/archive_goal.php" style="display:inline;" onsubmit="return confirmArchive(\'' . $row['title'] . '\');">
+                     <input type="hidden" name="goal_id" value="' . $row['id'] . '">
+                     <input type="hidden" name="goal_title" value="' . $row['title'] . '">
+                     <button type="submit" class="archive-button">Archive</button>
+                 </form>
+               </td>';
+         echo '</tr>';
+         $rowClass = ($rowClass == "row-1") ? "row-2" : "row-1";
+     }
+ } else {
+     echo "<tr><td colspan='5'>No goals found.</td></tr>";
+ }
+ ?>
+</table>
 
 <div class="previous-goals-section">
-    <div class="toggle-table">
-        <span id="toggleChevron" class="chevron" onclick="toggleTable()">▶</span> 
+        <div class="toggle-table">
+            <span id="toggleChevron" class="chevron" onclick="toggleTable()">▶</span> 
+        </div>
+        <table id="previousGoalsTable" style="display: none;">
+            <tr>
+                <th class="medium-style2">Previous Goals</th>
+                <th class="medium-style2">Initiative</th>
+                <th class="medium-style2">Target</th>
+                <th class="medium-style2">Budget</th>
+                <th class="medium-style2">Actions</th>
+            </tr>
+            <?php
+            // SQL query to fetch unarchived goals from previous years under the user's department
+            $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL AND department = ? AND year < ? ORDER BY year DESC";
+            $stmt_goals = $conn->prepare($sql);
+
+            // Bind parameters
+            $department = 'YourDepartment'; // replace with actual department variable
+            $current_year = date('Y');
+            $stmt_goals->bind_param("si", $department, $current_year);
+
+            // Execute the statement
+            $stmt_goals->execute();
+
+            // Get result set
+            $result = $stmt_goals->get_result();
+
+            if ($result->num_rows > 0) {
+                $rowClass = "row-1";
+                while ($row = $result->fetch_assoc()) {
+                    echo "<tr class=\"$rowClass\">";
+                    echo "<td>{$row['title']}</td>";
+                    echo "<td>{$row['initiative']}</td>";
+                    echo "<td>{$row['targets']}</td>";
+                    echo "<td>{$row['total_budget']}</td>";
+                    echo '<td>
+                             <button class="view-button" data-goal-id="' . $row['id'] . '">View</button>
+                            <button class="copy-button">Copy</button>
+                            <form method="post" action="../php/archive_goal.php" style="display:inline" onsubmit="return confirmArchive(\'' . $row['title'] . '\');">
+                                <input type="hidden" name="goal_id" value="' . $row['id'] . '">
+                                <input type="hidden" name="goal_title" value="' . $row['title'] . '">
+                                <button type="submit" class="archive-button">Archive</button>
+                            </form>
+                        </td>';
+                    echo '</tr>';
+                    $rowClass = ($rowClass == "row-1") ? "row-2" : "row-1";
+                }
+            } else {
+                echo "<tr><td colspan='5'>No goals found.</td></tr>";
+            }
+
+            // Close the statement
+            $stmt_goals->close();
+            ?>
+        </table>
     </div>
-    <table id="previousGoalsTable" style="display: none;">
-        <tr>
-            <th class="medium-style2">Previous Goals</th>
-            <th class="medium-style2">Initiative</th>
-            <th class="medium-style2">Target</th>
-            <th class="medium-style2">Budget</th>
-            <th class="medium-style2">Actions</th>
-        </tr>
-        <!-- Example rows, replace with your actual data -->
-        <tr class="row-1">
-            <td>Previous Goal 1</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>button
-                < class="view-button">View</button>
-                <button class="copy-button">Copy</button>
-                <button class="archive-button">Archive</button>
-            </td>
-        </tr>
-        <tr class="row-2">
-            <td>Previous Goal 2</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>
-                <button class="view-button">View</button>
-                <button class="copy-button">Copy</button>
-                <button class="archive-button">Archive</button>
-            </td>
-        </tr>
-        <!-- Add more rows as needed -->
-    </table>
-</div>
 
 <script>
     function toggleTable() {
@@ -583,9 +531,10 @@ $conn->close();
         </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+       document.addEventListener('DOMContentLoaded', function() {
     var modal = document.getElementById("viewGoalModal");
     var span = modal.getElementsByClassName("close")[0];
+    var okButton = document.getElementById("okButton");
 
     // When the user clicks on <span> (x), close the modal
     span.onclick = function() {
@@ -604,14 +553,15 @@ $conn->close();
         }
     }
 
-    document.querySelectorAll('.view-button').forEach(function(button) {
+    document.querySelectorAll('.view-button').forEach(button => {
         button.addEventListener('click', function() {
-            var goalId = this.dataset.goalId; // Assuming data-goal-id attribute is set on button
+            const goalId = this.getAttribute('data-goal-id');
             fetchGoalDetails(goalId);
         });
     });
 
     function fetchGoalDetails(goalId) {
+        console.log("Fetching details for goal ID:", goalId); // Add this line for debugging
         fetch(`../php/view_goal.php?id=${goalId}`)
             .then(response => response.json())
             .then(data => {
@@ -637,8 +587,11 @@ $conn->close();
         document.getElementById("goalDetails").innerHTML = details;
     }
 });
-
     </script>
 
 </body>
 </html>
+
+<?php
+$conn->close();
+?>
